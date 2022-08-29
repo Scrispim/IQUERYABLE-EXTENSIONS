@@ -1,62 +1,53 @@
-﻿using BookStore.Data;
-using BookStore.Model;
-using Microsoft.AspNetCore.Mvc;
-using System.Linq;
-using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
-using SCS.Books.Api.Extension;
-using SCS.Books.Api.Controllers.Request;
+﻿using AspNetCore.IQueryable.Extensions;
 using AspNetCore.IQueryable.Extensions.Filter;
 using AspNetCore.IQueryable.Extensions.Pagination;
 using AspNetCore.IQueryable.Extensions.Sort;
-using AspNetCore.IQueryable.Extensions;
+using Infrastructure.Data.Entities;
+using Infrastructure.Data.Repositores.Interface;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SCS.Books.Api.Controllers.Request;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace BookStore.Controllers
 {
-    [Route("api/Books")]
+	[Route("api/Books")]
+    [ApiController]
 	public class BooksController : Controller
 	{
-        private BookStoreContext _db;
+        private readonly IBooksRepository _bookReository;
 
-        public BooksController(BookStoreContext context)
+        public BooksController(IBooksRepository bookReository)
         {
-            _db = context;
-            if (context.Books.Count() == 0)
-            {
-                foreach (var b in DataSource.GetBooks())
-                {
-                    context.Books.Add(b);
-                    //context.Presses.Add(b.Press);
-                }
-                context.SaveChanges();
-            }
+            _bookReository = bookReository;
         }
 
         // Return all books
         [Route("GetAll")]
         [HttpGet]
-        public IActionResult Get()
+        public IActionResult GetAll()
         {
-            var books = _db.Books;
+            var books = _bookReository.GetAll();
             return Ok(books);
         }
 
         // Returns a specific book given its key
         [Route("GetBook")]
         [HttpGet]
-        public IActionResult Get(int key)
+        public IActionResult Get(string key)
         {
-            var book = _db.Books.FirstOrDefault(c => c.Id == key);
+            var book = _bookReository.Get(key);
 
             return Ok(book);
         }
 
         [Route("GetFilter")]
         [HttpGet]
-        public async Task<IActionResult> GetByTitle([FromQuery] BookRequest query)
+        public async Task<IActionResult> GetSearch([FromQuery] BookRequestFilter query)
         {
-            var books1 = await _db.Books.AsQueryable().Filter(query).Paginate(query).Sort(query).ToListAsync();
-            var books = await _db.Books.AsQueryable().Apply(query).ToListAsync();
+            var booksList = _bookReository.GetAll().ToList().AsQueryable();//.Filter(query).Paginate(query).Sort(query).ToListAsync();
+            var books = await booksList.Apply(query).ToListAsync();
 
             //if (title.IsExists()) {
             //    queryBooks = queryBooks.Where(c => c.Title == title);
@@ -67,13 +58,48 @@ namespace BookStore.Controllers
             return Ok(books);
         }
         // Create a new book
-        [Route("PostBook")]
+        [Route("CreateBook")]
         [HttpPost]
-        public IActionResult Post([FromBody] Book book)
+        public IActionResult Create([FromBody] BookRequest book)
         {
-            _db.Books.Add(book);
-            _db.SaveChanges();
+            var entity = new BooksEntity();
+
+            entity.Author = book.Author;
+            entity.ISBN = book.ISBN;
+            entity.Title = book.Title;
+            entity.Price = book.Price;
+
+
+            _bookReository.Insert(entity);
+           
             return Ok(book);
+        }
+
+        // Update a book
+        [Route("UpdateBook")]
+        [HttpPost]
+        public IActionResult Update([FromBody] BookRequest book)
+        {
+            var entity = new BooksEntity();
+            entity.Id = book.Id;
+            entity.Author = book.Author;
+            entity.ISBN = book.ISBN;
+            entity.Title = book.Title;
+            entity.Price = book.Price;
+
+
+            _bookReository.Update(entity);
+
+            return Ok(book);
+        }
+
+        // Update a book
+        [Route("DeleteBook")]
+        [HttpPost]
+        public IActionResult Delete(string id)
+        {           
+
+            return Ok(_bookReository.Delete(id));
         }
     }
 }
