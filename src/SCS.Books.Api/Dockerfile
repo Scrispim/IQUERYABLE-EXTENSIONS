@@ -12,7 +12,7 @@ RUN dotnet publish -c Release -o out
 FROM mcr.microsoft.com/dotnet/core/aspnet:3.1
 WORKDIR /app
 COPY --from=build-env /app/out .
-ENTRYPOINT ["dotnet", "BookStore.dll"]
+ENTRYPOINT ["dotnet", "IQueryable-Extension.dll"]
 
 
 # docker create --name core-counter counter-image

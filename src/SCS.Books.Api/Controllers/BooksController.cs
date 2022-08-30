@@ -47,7 +47,7 @@ namespace BookStore.Controllers
         public async Task<IActionResult> GetSearch([FromQuery] BookRequestFilter query)
         {
             var booksList = _bookReository.GetAll().ToList().AsQueryable();//.Filter(query).Paginate(query).Sort(query).ToListAsync();
-            var books = await booksList.Apply(query).ToListAsync();
+            var books = booksList.Apply(query).ToList();
 
             //if (title.IsExists()) {
             //    queryBooks = queryBooks.Where(c => c.Title == title);
